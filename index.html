@@ -765,18 +765,20 @@
   }
 
   function checkTrick(deg) {
-    if (Math.abs(deg) < 30) return;
+    console.log('checkTrick kallt med deg:', deg);
+    if (Math.abs(deg) < 30) { console.log('for lite, ignorerer'); return; }
     const absDeg = Math.abs(deg);
 
     for (const t of TRICKS) {
       const min = Math.min(Math.abs(t.minDeg), Math.abs(t.maxDeg));
       const max = Math.max(Math.abs(t.minDeg), Math.abs(t.maxDeg));
       const isReverse = t.minDeg < 0;
+      console.log(`Sjekker ${t.name}: min=${min} max=${max} absDeg=${absDeg} isReverse=${isReverse} deg=${deg}`);
 
-      // Sjekk retning og om graden er innenfor vinduet
       if (isReverse && deg > 0) continue;
       if (!isReverse && deg < 0) continue;
       if (absDeg >= min && absDeg <= max) {
+        console.log('TREFF:', t.name);
         registerTrick(t);
         break;
       }
