@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SpinLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e14;
+    --surface: #111820;
+    --border: #1e2d3d;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --text: #e8f4f8;
+    --muted: #4a6a7a;
+    --green: #00ff88;
+    --yellow: #ffd700;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Water ripple background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 50% 100%, rgba(0,180,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 30% at 20% 80%, rgba(0,100,200,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(0,212,255,0.4);
+  }
+  .logo .spin { color: var(--accent); }
+  .logo .log { color: var(--accent2); }
+
+  .total-score {
+    text-align: right;
+  }
+  .total-score .label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .total-score .pts {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    color: var(--yellow);
+    text-shadow: 0 0 15px rgba(255,215,0,0.4);
+    line-height: 1;
+  }
+
+  /* MAIN DISPLAY */
+  .main-display {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  /* DEGREE PANEL */
+  .degree-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .degree-panel::before {
+    content: '';
+    position: absolute;
+    top: -40px; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .degree-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .degree-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(0,212,255,0.5);
+    transition: color 0.15s;
+  }
+
+  .degree-value.flash {
+    color: var(--green);
+    text-shadow: 0 0 40px rgba(0,255,136,0.7);
+  }
+
+  .degree-unit {
+    font-size: 18px;
+    color: var(--muted);
+    margin-top: -4px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+  }
+
+  /* Compass ring */
+  .compass {
+    margin-top: 16px;
+    width: 80px;
+    height: 80px;
+    position: relative;
+  }
+
+  .compass-ring {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    position: relative;
+    transition: transform 0.1s linear;
+  }
+
+  .compass-ring::before {
+    content: '';
+    position: absolute;
+    top: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 3px; height: 28px;
+    background: linear-gradient(to bottom, var(--accent2), transparent);
+    border-radius: 2px;
+  }
+
+  .compass-ring::after {
+    content: 'N';
+    position: absolute;
+    top: 6px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  /* STATUS */
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 6px;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .status-dot.active {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(0,255,136,0.6);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .status-text {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* TRICK LIST PANEL */
+  .trick-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 380px;
+  }
+
+  .trick-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .trick-panel-title {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .trick-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  .trick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .trick-list::-webkit-scrollbar { width: 2px; }
+  .trick-list::-webkit-scrollbar-track { background: transparent; }
+  .trick-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .trick-item {
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(0,212,255,0.1);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .trick-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 2px 0 0 2px;
+  }
+
+  .trick-item.new::before { background: var(--green); }
+  .trick-item.high::before { background: var(--yellow); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .trick-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+
+  .trick-pts {
+    font-size: 10px;
+    color: var(--yellow);
+    font-weight: 500;
+  }
+
+  .trick-num {
+    font-size: 9px;
+    color: var(--muted);
+    position: absolute;
+    right: 8px;
+    bottom: 4px;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 8px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 28px;
+    opacity: 0.4;
+  }
+
+  .empty-text {
+    font-size: 10px;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+
+  /* BOTTOM CONTROLS */
+  .controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-start {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+  }
+  .btn-start:active { transform: scale(0.97); }
+
+  .btn-stop {
+    background: var(--accent2);
+    color: var(--bg);
+    box-shadow: 0 4px 20px rgba(255,107,53,0.3);
+  }
+
+  .btn-reset {
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    flex: 0.5;
+  }
+
+  /* TRICK FLASH OVERLAY */
+  .trick-flash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .trick-flash.show {
+    opacity: 1;
+  }
+
+  .trick-flash-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    color: var(--green);
+    text-shadow: 0 0 60px rgba(0,255,136,0.8);
+    letter-spacing: 4px;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .trick-flash-pts {
+    font-size: 20px;
+    color: var(--yellow);
+    letter-spacing: 3px;
+    font-family: 'Bebas Neue', sans-serif;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* ACCESS CODE SCREEN */
+  .access-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 32px;
+    z-index: 300;
+    text-align: center;
+  }
+
+  .access-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0,180,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .access-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 4px;
+  }
+  .access-logo .spin { color: var(--accent); text-shadow: 0 0 30px rgba(0,212,255,0.5); }
+  .access-logo .log  { color: var(--accent2); }
+
+  .access-subtitle {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: -10px;
+  }
+
+  .access-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 16px;
+  }
+
+  .access-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--accent);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 8px;
+    text-align: center;
+    padding: 16px 24px;
+    width: 100%;
+    max-width: 280px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .access-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(0,212,255,0.15);
+  }
+  .access-input.error {
+    border-color: var(--accent2);
+    box-shadow: 0 0 20px rgba(255,107,53,0.2);
+    animation: shake 0.4s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-8px); }
+    40%       { transform: translateX(8px); }
+    60%       { transform: translateX(-5px); }
+    80%       { transform: translateX(5px); }
+  }
+
+  .access-error {
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 1px;
+    min-height: 16px;
+    transition: opacity 0.2s;
+  }
+
+  .btn-access {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 16px 48px;
+    border-radius: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(0,212,255,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-access:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+<!-- ACCESS CODE SCREEN -->
+<div class="access-screen" id="accessScreen">
+  <div class="access-logo"><span class="spin">SPIN</span><span class="log">LOG</span></div>
+  <div class="access-subtitle">Trick Tracker</div>
+  <div class="access-label">Aktiveringskode</div>
+  <input
+    class="access-input"
+    id="accessInput"
+    type="text"
+    maxlength="12"
+    placeholder="····"
+    autocomplete="off"
+    autocorrect="off"
+    spellcheck="false"
+    onkeydown="if(event.key==='Enter') checkCode()"
+  />
+  <div class="access-error" id="accessError"></div>
+  <button class="btn-access" onclick="checkCode()">UNLOCK</button>
+</div>
+
+<!-- SENSOR PERMISSION SCREEN -->
+<div class="permission-screen" id="permScreen" style="display:none;">
+  <div class="perm-icon">🌊</div>
+  <div class="perm-title" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);letter-spacing:2px;">SPINLOG</div>
+  <div class="perm-text" style="font-size:12px;color:var(--muted);line-height:1.7;max-width:280px;text-align:center;">
+    Appen trenger tilgang til bevegelsessensoren for å måle rotasjon.<br><br>
+    Trykk på knappen og tillat tilgang når nettleseren spør.
+  </div>
+  <button style="background:var(--accent);color:var(--bg);border:none;padding:16px 40px;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer;" onclick="requestPermission()">AKTIVER SENSOR</button>
+  <div style="font-size:10px;color:var(--muted);margin-top:8px;">Fungerer best i Safari på iPhone</div>
+</div>
+
+<div class="trick-flash" id="trickFlash">
+  <div class="trick-flash-name" id="flashName">360°</div>
+  <div class="trick-flash-pts" id="flashPts">+500 PTS</div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo"><span class="spin">SPIN</span><span class="log">LOG</span></div>
+    <div class="total-score">
+      <div class="label">TOTAL</div>
+      <div class="pts" id="totalScore">0</div>
+    </div>
+  </header>
+
+  <div class="main-display">
+    <!-- DEGREE PANEL -->
+    <div class="degree-panel">
+      <div class="degree-label">ROTASJON</div>
+      <div class="degree-value" id="degreeValue">0</div>
+      <div class="degree-unit">GRADER</div>
+      <div class="compass">
+        <div class="compass-ring" id="compassRing"></div>
+      </div>
+      <div class="status-text">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">IKKE AKTIV</span>
+      </div>
+    </div>
+
+    <!-- TRICK LIST -->
+    <div class="trick-panel">
+      <div class="trick-panel-header">
+        <div class="trick-panel-title">TRIKS</div>
+        <div class="trick-count" id="trickCount">0</div>
+      </div>
+      <div class="trick-list" id="trickList">
+        <div class="empty-state">
+          <div class="empty-icon">🎿</div>
+          <div class="empty-text">Triks vises<br>her</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="btn btn-start" id="mainBtn" onclick="toggleTracking()">START</button>
+    <button class="btn btn-reset" onclick="resetAll()">RESET</button>
+  </div>
+</div>
+
+<script>
+  // =============================================
+  // === ACCESS CODES – legg til flere her! ===
+  // Bare skriv inn ny kode i listen, f.eks:
+  // 'MINKODE', 'VENN123', 'SKIGANG'
+  const VALID_CODES = [
+    'SPINLOG',
+    'WATERSKI',
+  ];
+  // =============================================
+
+  function checkCode() {
+    const input = document.getElementById('accessInput');
+    const errorEl = document.getElementById('accessError');
+    const val = input.value.trim().toUpperCase();
+
+    if (VALID_CODES.includes(val)) {
+      document.getElementById('accessScreen').style.display = 'none';
+      // Check if iOS needs permission
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        document.getElementById('permScreen').style.display = 'flex';
+      } else {
+        startSensor();
+      }
+    } else {
+      errorEl.textContent = 'Feil kode – prøv igjen';
+      input.classList.add('error');
+      input.value = '';
+      setTimeout(() => {
+        input.classList.remove('error');
+        errorEl.textContent = '';
+      }, 1500);
+    }
+  }
+
+  // === TRICK DEFINITIONS ===
+  // Positive = normal, Negative = reverse
+  const TRICKS = [
+    { name: '180°',     minDeg:  155, points: 170 },
+    { name: '360°',     minDeg:  330, points: 500 },
+    { name: '540°',     minDeg:  500, points: 800 },
+    { name: '720°',     minDeg:  680, points: 1200 },
+    { name: 'Rev 180°', minDeg: -155, points: 170 },
+    { name: 'Rev 360°', minDeg: -330, points: 500 },
+    { name: 'Rev 540°', minDeg: -500, points: 800 },
+    { name: 'Rev 720°', minDeg: -680, points: 1200 },
+    { name: 'Side S°', minDeg: 85, points: 50 },
+    { name: 'Rev Side S°', minDeg: -85, points: 50 },
+  ];
+
+  // === STATE ===
+  let isTracking = false;
+  let baseAlpha = null;
+  let lastAlpha = null;
+  let accumulatedDeg = 0;
+  let tricks = [];
+  let totalScore = 0;
+  let sensorActive = false;
+  let stillTimer = null;
+  let highestDegReached = 0;  // always positive, tracks max in current direction
+  let currentDirection = 0;   // +1 or -1, set when spin starts
+  let awardedThresholds = new Set(); // minDeg values awarded this spin
+
+  // === PERMISSION ===
+  async function requestPermission() {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const perm = await DeviceOrientationEvent.requestPermission();
+        if (perm === 'granted') {
+          startSensor();
+        } else {
+          alert('Tilgang nektet. Prøv igjen.');
+        }
+      } catch(e) {
+        alert('Feil: ' + e.message);
+      }
+    } else {
+      // Android or older browser - just start
+      startSensor();
+    }
+  }
+
+  function startSensor() {
+    document.getElementById('permScreen').style.display = 'none';
+    window.addEventListener('deviceorientation', onOrientation, true);
+    sensorActive = true;
+    document.getElementById('statusDot').classList.add('active');
+    document.getElementById('statusText').textContent = 'SENSOR OK';
+  }
+
+  // === ORIENTATION HANDLER ===
+  function onOrientation(e) {
+    if (!isTracking) return;
+    const alpha = e.alpha;
+    if (alpha === null) return;
+
+    if (baseAlpha === null) {
+      baseAlpha = alpha;
+      lastAlpha = alpha;
+      return;
+    }
+
+    // Delta with wrap handling
+    let delta = alpha - lastAlpha;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    accumulatedDeg += delta;
+    lastAlpha = alpha;
+
+    // Update compass
+    document.getElementById('compassRing').style.transform =
+      `rotate(${-accumulatedDeg}deg)`;
+
+    const absDeg = Math.abs(accumulatedDeg);
+    document.getElementById('degreeValue').textContent = Math.round(absDeg);
+
+    // Check tricks based on current absolute rotation
+    checkTrick(absDeg);
+
+    // If rotation drops back near 0, reset spin state
+    clearTimeout(stillTimer);
+    stillTimer = setTimeout(() => {
+      if (isTracking) {
+        highestDegReached = 0;
+        awardedThresholds.clear();
+        currentDirection = 0;
+        accumulatedDeg = 0;
+        baseAlpha = lastAlpha;
+      }
+    }, 1200);
+  }
+
+  function checkTrick(absDeg) {
+    if (absDeg <= highestDegReached) return;
+    highestDegReached = absDeg;
+
+    // Check positive tricks if spinning forward, negative if reverse
+    const deg = accumulatedDeg;
+
+    for (let i = TRICKS.length - 1; i >= 0; i--) {
+      const t = TRICKS[i];
+      const threshold = t.minDeg;
+      // Match direction: positive threshold = normal spin, negative = reverse
+      const crossed = threshold > 0 ? deg >= threshold : deg <= threshold;
+      const key = threshold;
+      if (crossed && !awardedThresholds.has(key)) {
+        awardedThresholds.add(key);
+        registerTrick(t);
+        break;
+      }
+    }
+  }
+
+  function registerTrick(trick) {
+    totalScore += trick.points;
+    tricks.unshift({ ...trick, id: Date.now() });
+
+    // Update score
+    document.getElementById('totalScore').textContent = totalScore;
+    document.getElementById('trickCount').textContent = tricks.length;
+
+    // Flash overlay
+    showFlash(trick);
+
+    // Flash degree value
+    const dv = document.getElementById('degreeValue');
+    dv.classList.add('flash');
+    setTimeout(() => dv.classList.remove('flash'), 600);
+
+    // Update list
+    renderTricks();
+  }
+
+  function showFlash(trick) {
+    const flash = document.getElementById('trickFlash');
+    document.getElementById('flashName').textContent = trick.name;
+    document.getElementById('flashPts').textContent = '+' + trick.points + ' PTS';
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 900);
+  }
+
+  function renderTricks() {
+    const list = document.getElementById('trickList');
+    if (tricks.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎿</div><div class="empty-text">Triks vises<br>her</div></div>`;
+      return;
+    }
+    list.innerHTML = tricks.map((t, i) => `
+      <div class="trick-item ${i === 0 ? 'new' : ''} ${t.points >= 800 ? 'high' : ''}">
+        <div>
+          <div class="trick-name">${t.name}</div>
+        </div>
+        <div class="trick-pts">+${t.points} pts</div>
+        <div class="trick-num">#${tricks.length - i}</div>
+      </div>
+    `).join('');
+  }
+
+  // === CONTROLS ===
+  function toggleTracking() {
+    if (!sensorActive) {
+      alert('Aktiver sensor først!');
+      return;
+    }
+    isTracking = !isTracking;
+    const btn = document.getElementById('mainBtn');
+
+    if (isTracking) {
+      baseAlpha = null;
+      lastAlpha = null;
+      accumulatedDeg = 0;
+    highestDegReached = 0;
+      awardedThresholds.clear();
+      currentDirection = 0;
+      btn.textContent = 'STOPP';
+      btn.className = 'btn btn-stop';
+      document.getElementById('statusDot').classList.add('active');
+      document.getElementById('statusText').textContent = 'MÅLER...';
+    } else {
+      btn.textContent = 'START';
+      btn.className = 'btn btn-start';
+      document.getElementById('statusText').textContent = 'PAUSET';
+    }
+  }
+
+  function resetAll() {
+    isTracking = false;
+    baseAlpha = null;
+    lastAlpha = null;
+    accumulatedDeg = 0;
+    highestDegReached = 0;
+    awardedThresholds.clear();
+    currentDirection = 0;
+    tricks = [];
+    totalScore = 0;
+
+    document.getElementById('degreeValue').textContent = '0';
+    document.getElementById('totalScore').textContent = '0';
+    document.getElementById('trickCount').textContent = '0';
+    document.getElementById('compassRing').style.transform = 'rotate(0deg)';
+    document.getElementById('mainBtn').textContent = 'START';
+    document.getElementById('mainBtn').className = 'btn btn-start';
+    document.getElementById('statusText').textContent = 'SENSOR OK';
+    renderTricks();
+  }
+
+  // Try auto-start without permission request on Android
+  // (access code screen still shows first)
+  window.addEventListener('load', () => {
+    // Android doesn't need sensor permission, but still needs access code
+    // startSensor() is called after code check
+  });
+</script>
+</body>
+</html>
