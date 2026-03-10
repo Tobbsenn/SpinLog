@@ -679,8 +679,6 @@
     { name: 'Rev 360°', minDeg: -330, points: 500 },
     { name: 'Rev 540°', minDeg: -500, points: 800 },
     { name: 'Rev 720°', minDeg: -680, points: 1200 },
-    { name: 'Side S°', minDeg: 85, points: 50 },
-    { name: 'Rev Side S°', minDeg: -85, points: 50 },
   ];
 
   // === STATE ===
@@ -754,31 +752,35 @@
     // Check tricks
     checkTrick();
 
-    // Reset spin state after stillness
+    // Stopp-timer: registrer trikset etter at rotasjonen har stoppet
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
       if (isTracking) {
+        awardBestTrick();
         awardedThresholds.clear();
         currentDirection = 0;
         accumulatedDeg = 0;
         baseAlpha = lastAlpha;
       }
-    }, 1200);
+    }, 600);
   }
 
-  function checkTrick() {
+  function awardBestTrick() {
     const deg = accumulatedDeg;
-
+    // Finn det høyeste trikset som ble krysset
     for (let i = TRICKS.length - 1; i >= 0; i--) {
       const t = TRICKS[i];
       const threshold = t.minDeg;
       const crossed = threshold > 0 ? deg >= threshold : deg <= threshold;
-      if (crossed && !awardedThresholds.has(threshold)) {
-        awardedThresholds.add(threshold);
+      if (crossed) {
         registerTrick(t);
-        break;
+        return;
       }
     }
+  }
+
+  function checkTrick() {
+    // Ikke lenger brukt til å registrere – bare oppdater awardedThresholds for fremtidig bruk
   }
 
   function registerTrick(trick) {
