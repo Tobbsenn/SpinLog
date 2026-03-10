@@ -754,37 +754,28 @@
     // Check tricks
     checkTrick();
 
-    // Reset spin state after stillness
+    // Stopp-timer: vent til rotasjonen stopper, DERETTER gi trikset
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
       if (isTracking) {
+        checkTrick();
         awardedThresholds.clear();
         currentDirection = 0;
         accumulatedDeg = 0;
         baseAlpha = lastAlpha;
       }
-    }, 1200);
+    }, 800);
   }
 
   function checkTrick() {
     const deg = accumulatedDeg;
-
-    // Skill ut positive og negative triks basert på retning
     const direction = deg >= 0 ? 'positive' : 'negative';
     const relevantTricks = TRICKS.filter(t => direction === 'positive' ? t.minDeg > 0 : t.minDeg < 0);
-
-    // Sorter etter absolutt verdi, høyest først
     relevantTricks.sort((a, b) => Math.abs(b.minDeg) - Math.abs(a.minDeg));
 
     for (const t of relevantTricks) {
       const crossed = t.minDeg > 0 ? deg >= t.minDeg : deg <= t.minDeg;
-      if (crossed && !awardedThresholds.has(t.minDeg)) {
-        // Marker alle lavere triks i samme retning som brukt
-        relevantTricks.forEach(r => {
-          if (Math.abs(r.minDeg) <= Math.abs(t.minDeg)) {
-            awardedThresholds.add(r.minDeg);
-          }
-        });
+      if (crossed) {
         registerTrick(t);
         break;
       }
