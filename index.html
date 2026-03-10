@@ -669,19 +669,22 @@
   }
 
   // === TRICK DEFINITIONS ===
-  // Positive = normal, Negative = reverse
+  // maxCount = maks antall ganger trikset kan tas (0 = ubegrenset)
   const TRICKS = [
-    { name: 'Side S°',     minDeg:  60,  maxDeg:  120, points:   50 },
-    { name: '180°',        minDeg:  151, maxDeg:  250, points:  170 },
-    { name: '360°',        minDeg:  310, maxDeg:  410, points:  500 },
-    { name: '540°',        minDeg:  470, maxDeg:  570, points:  800 },
-    { name: '720°',        minDeg:  630, maxDeg:  780, points: 1200 },
-    { name: 'Rev Side S°', minDeg: -60,  maxDeg: -120, points:   50 },
-    { name: 'Rev 180°',    minDeg: -151, maxDeg: -250, points:  170 },
-    { name: 'Rev 360°',    minDeg: -310, maxDeg: -410, points:  500 },
-    { name: 'Rev 540°',    minDeg: -470, maxDeg: -570, points:  800 },
-    { name: 'Rev 720°',    minDeg: -630, maxDeg: -780, points: 1200 },
+    { name: 'Side S°',     minDeg:  60,  maxDeg:  150, points:   50, maxCount: 1 },
+    { name: '180°',        minDeg:  151, maxDeg:  250, points:  170, maxCount: 2 },
+    { name: '360°',        minDeg:  310, maxDeg:  410, points:  500, maxCount: 1 },
+    { name: '540°',        minDeg:  470, maxDeg:  570, points:  800, maxCount: 1 },
+    { name: '720°',        minDeg:  630, maxDeg:  780, points: 1200, maxCount: 1 },
+    { name: 'Rev Side S°', minDeg:  -60, maxDeg: -150, points:   50, maxCount: 2 },
+    { name: 'Rev 180°',    minDeg: -151, maxDeg: -250, points:  170, maxCount: 2 },
+    { name: 'Rev 360°',    minDeg: -310, maxDeg: -410, points:  500, maxCount: 1 },
+    { name: 'Rev 540°',    minDeg: -470, maxDeg: -570, points:  800, maxCount: 1 },
+    { name: 'Rev 720°',    minDeg: -630, maxDeg: -780, points: 1200, maxCount: 1 },
   ];
+
+  // Teller antall ganger hvert triks er tatt
+  const trickCountMap = {};
 
   // === STATE ===
   let isTracking = false;
@@ -799,6 +802,11 @@
   }
 
   function registerTrick(trick) {
+    // Sjekk om trikset har nådd maks antall
+    const count = trickCountMap[trick.name] || 0;
+    if (trick.maxCount > 0 && count >= trick.maxCount) return;
+    trickCountMap[trick.name] = count + 1;
+
     const trickWithId = { ...trick, id: Date.now() };
     totalScore += trick.points;
     tricks.unshift(trickWithId);
@@ -882,6 +890,7 @@
     currentDirection = 0;
     tricks = [];
     totalScore = 0;
+    Object.keys(trickCountMap).forEach(k => delete trickCountMap[k]);
 
     document.getElementById('degreeValue').textContent = '0';
     document.getElementById('totalScore').textContent = '0';
