@@ -671,12 +671,12 @@
   // === TRICK DEFINITIONS ===
   // Positive = normal, Negative = reverse
   const TRICKS = [
-    { name: 'Side S°',     minDeg:  60,  maxDeg:  150, points:   50 },
+    { name: 'Side S°',     minDeg:  60,  maxDeg:  120, points:   50 },
     { name: '180°',        minDeg:  151, maxDeg:  250, points:  170 },
     { name: '360°',        minDeg:  310, maxDeg:  410, points:  500 },
     { name: '540°',        minDeg:  470, maxDeg:  570, points:  800 },
     { name: '720°',        minDeg:  630, maxDeg:  780, points: 1200 },
-    { name: 'Rev Side S°', minDeg: -60,  maxDeg: -150, points:   50 },
+    { name: 'Rev Side S°', minDeg: -60,  maxDeg: -120, points:   50 },
     { name: 'Rev 180°',    minDeg: -151, maxDeg: -250, points:  170 },
     { name: 'Rev 360°',    minDeg: -310, maxDeg: -410, points:  500 },
     { name: 'Rev 540°',    minDeg: -470, maxDeg: -570, points:  800 },
@@ -751,36 +751,49 @@
     document.getElementById('degreeValue').textContent = Math.round(Math.abs(accumulatedDeg));
     sendDegrees(accumulatedDeg);
 
-    clearTimeout(stillTimer);
-    stillTimer = setTimeout(() => {
-      if (isTracking) {
-        const snapshot = accumulatedDeg;
-        accumulatedDeg = 0;
-        baseAlpha = lastAlpha;
-        awardedThresholds.clear();
-        currentDirection = 0;
-        checkTrick(snapshot);
-      }
-    }, 800);
+    // Sjekk triks basert på vindu-logikk
+    handleTrickWindows(accumulatedDeg);
   }
 
-  function checkTrick(deg) {
-    console.log('checkTrick kallt med deg:', deg);
-    if (Math.abs(deg) < 30) { console.log('for lite, ignorerer'); return; }
-    const absDeg = Math.abs(deg);
+  let activeTrick = null; // trikset som er "aktivt" akkurat nå
 
+  function handleTrickWindows(deg) {
+    const absDeg = Math.abs(deg);
+    const isNeg = deg < 0;
+
+    // Finn hvilket vindu vi er i nå
+    let currentWindow = null;
     for (const t of TRICKS) {
+      const tIsNeg = t.minDeg < 0;
+      if (tIsNeg !== isNeg) continue;
       const min = Math.min(Math.abs(t.minDeg), Math.abs(t.maxDeg));
       const max = Math.max(Math.abs(t.minDeg), Math.abs(t.maxDeg));
-      const isReverse = t.minDeg < 0;
-      console.log(`Sjekker ${t.name}: min=${min} max=${max} absDeg=${absDeg} isReverse=${isReverse} deg=${deg}`);
-
-      if (isReverse && deg > 0) continue;
-      if (!isReverse && deg < 0) continue;
       if (absDeg >= min && absDeg <= max) {
-        console.log('TREFF:', t.name);
-        registerTrick(t);
+        currentWindow = t;
         break;
+      }
+    }
+
+    if (currentWindow) {
+      if (activeTrick !== currentWindow) {
+        // Gikk inn i et nytt vindu – start timer
+        activeTrick = currentWindow;
+        clearTimeout(stillTimer);
+        stillTimer = setTimeout(() => {
+          if (!isTracking || activeTrick !== currentWindow) return;
+          registerTrick(currentWindow);
+          activeTrick = null;
+          accumulatedDeg = 0;
+          baseAlpha = null;
+          awardedThresholds.clear();
+          currentDirection = 0;
+        }, 800);
+      }
+    } else {
+      // Utenfor alle vindu – kanseller aktivt triks
+      if (activeTrick !== null) {
+        activeTrick = null;
+        clearTimeout(stillTimer);
       }
     }
   }
