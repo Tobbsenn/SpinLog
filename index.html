@@ -660,8 +660,7 @@
   let totalScore = 0;
   let sensorActive = false;
   let stillTimer = null;
-  let highestDegReached = 0;  // always positive, tracks max in current direction
-  let currentDirection = 0;   // +1 or -1, set when spin starts
+  let currentDirection = 0;
   let awardedThresholds = new Set(); // minDeg values awarded this spin
 
   // === PERMISSION ===
@@ -716,17 +715,15 @@
     document.getElementById('compassRing').style.transform =
       `rotate(${-accumulatedDeg}deg)`;
 
-    const absDeg = Math.abs(accumulatedDeg);
-    document.getElementById('degreeValue').textContent = Math.round(absDeg);
+    document.getElementById('degreeValue').textContent = Math.round(Math.abs(accumulatedDeg));
 
-    // Check tricks based on current absolute rotation
-    checkTrick(absDeg);
+    // Check tricks
+    checkTrick();
 
-    // If rotation drops back near 0, reset spin state
+    // Reset spin state after stillness
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
       if (isTracking) {
-        highestDegReached = 0;
         awardedThresholds.clear();
         currentDirection = 0;
         accumulatedDeg = 0;
@@ -735,21 +732,15 @@
     }, 1200);
   }
 
-  function checkTrick(absDeg) {
-    if (absDeg <= highestDegReached) return;
-    highestDegReached = absDeg;
-
-    // Check positive tricks if spinning forward, negative if reverse
+  function checkTrick() {
     const deg = accumulatedDeg;
 
     for (let i = TRICKS.length - 1; i >= 0; i--) {
       const t = TRICKS[i];
       const threshold = t.minDeg;
-      // Match direction: positive threshold = normal spin, negative = reverse
       const crossed = threshold > 0 ? deg >= threshold : deg <= threshold;
-      const key = threshold;
-      if (crossed && !awardedThresholds.has(key)) {
-        awardedThresholds.add(key);
+      if (crossed && !awardedThresholds.has(threshold)) {
+        awardedThresholds.add(threshold);
         registerTrick(t);
         break;
       }
@@ -814,7 +805,6 @@
       baseAlpha = null;
       lastAlpha = null;
       accumulatedDeg = 0;
-    highestDegReached = 0;
       awardedThresholds.clear();
       currentDirection = 0;
       btn.textContent = 'STOPP';
@@ -833,7 +823,6 @@
     baseAlpha = null;
     lastAlpha = null;
     accumulatedDeg = 0;
-    highestDegReached = 0;
     awardedThresholds.clear();
     currentDirection = 0;
     tricks = [];
