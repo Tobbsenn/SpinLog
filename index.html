@@ -769,17 +769,22 @@
   function checkTrick() {
     const deg = accumulatedDeg;
 
-    // Finn det høyeste trikset som er krysset men ikke tildelt ennå
-    for (let i = TRICKS.length - 1; i >= 0; i--) {
-      const t = TRICKS[i];
-      const threshold = t.minDeg;
-      const crossed = threshold > 0 ? deg >= threshold : deg <= threshold;
+    // Skill ut positive og negative triks basert på retning
+    const direction = deg >= 0 ? 'positive' : 'negative';
+    const relevantTricks = TRICKS.filter(t => direction === 'positive' ? t.minDeg > 0 : t.minDeg < 0);
 
-      if (crossed && !awardedThresholds.has(threshold)) {
-        // Marker alle lavere triks som "brukt" så de ikke registreres etterpå
-        for (let j = 0; j <= i; j++) {
-          awardedThresholds.add(TRICKS[j].minDeg);
-        }
+    // Sorter etter absolutt verdi, høyest først
+    relevantTricks.sort((a, b) => Math.abs(b.minDeg) - Math.abs(a.minDeg));
+
+    for (const t of relevantTricks) {
+      const crossed = t.minDeg > 0 ? deg >= t.minDeg : deg <= t.minDeg;
+      if (crossed && !awardedThresholds.has(t.minDeg)) {
+        // Marker alle lavere triks i samme retning som brukt
+        relevantTricks.forEach(r => {
+          if (Math.abs(r.minDeg) <= Math.abs(t.minDeg)) {
+            awardedThresholds.add(r.minDeg);
+          }
+        });
         registerTrick(t);
         break;
       }
