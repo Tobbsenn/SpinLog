@@ -751,28 +751,32 @@
     document.getElementById('degreeValue').textContent = Math.round(Math.abs(accumulatedDeg));
     sendDegrees(accumulatedDeg);
 
-    // Stopp-timer: registrer trikset etter at rotasjonen har stoppet
+    // Check tricks
+    checkTrick();
+
+    // Reset spin state after stillness
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
       if (isTracking) {
-        const degSnapshot = accumulatedDeg; // ta kopi FØR nullstilling
-        accumulatedDeg = 0;
-        baseAlpha = lastAlpha;
         awardedThresholds.clear();
         currentDirection = 0;
-        awardBestTrick(degSnapshot);
+        accumulatedDeg = 0;
+        baseAlpha = lastAlpha;
       }
     }, 1200);
   }
 
-  function awardBestTrick(deg) {
+  function checkTrick() {
+    const deg = accumulatedDeg;
+
     for (let i = TRICKS.length - 1; i >= 0; i--) {
       const t = TRICKS[i];
       const threshold = t.minDeg;
       const crossed = threshold > 0 ? deg >= threshold : deg <= threshold;
-      if (crossed) {
+      if (crossed && !awardedThresholds.has(threshold)) {
+        awardedThresholds.add(threshold);
         registerTrick(t);
-        return;
+        break;
       }
     }
   }
