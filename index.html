@@ -600,7 +600,39 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // === FIREBASE OPPSETT ===
+  const firebaseConfig = {
+    databaseURL: "https://spinlog-cc4cf-default-rtdb.europe-west1.firebasedatabase.app"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getDatabase(fbApp);
+
+  // Send grader til Firebase (maks hvert 200ms for å spare data)
+  let lastSend = 0;
+  function sendDegrees(deg) {
+    const now = Date.now();
+    if (now - lastSend < 200) return;
+    lastSend = now;
+    set(ref(db, 'sensor/degrees'), deg);
+  }
+
+  // Send heartbeat hvert 2. sekund så dommerskjerm vet sensor er online
+  let heartbeatInterval = null;
+  function startHeartbeat() {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = setInterval(() => {
+      set(ref(db, 'sensor/heartbeat'), Date.now());
+    }, 2000);
+  }
+
+  // Send triks til Firebase
+  function sendTrick(trick) {
+    set(ref(db, 'sensor/lastTrick'), trick);
+  }
   // =============================================
   // === ACCESS CODES – legg til flere her! ===
   // Bare skriv inn ny kode i listen, f.eks:
@@ -647,8 +679,6 @@
     { name: 'Rev 360°', minDeg: -330, points: 500 },
     { name: 'Rev 540°', minDeg: -500, points: 800 },
     { name: 'Rev 720°', minDeg: -680, points: 1200 },
-    { name: 'Side S°', minDeg: 85, points: 50 },
-    { name: 'Rev Side S°', minDeg: -85, points: 50 },
   ];
 
   // === STATE ===
@@ -689,6 +719,7 @@
     sensorActive = true;
     document.getElementById('statusDot').classList.add('active');
     document.getElementById('statusText').textContent = 'SENSOR OK';
+    startHeartbeat();
   }
 
   // === ORIENTATION HANDLER ===
@@ -716,6 +747,7 @@
       `rotate(${-accumulatedDeg}deg)`;
 
     document.getElementById('degreeValue').textContent = Math.round(Math.abs(accumulatedDeg));
+    sendDegrees(accumulatedDeg);
 
     // Check tricks
     checkTrick();
@@ -748,8 +780,12 @@
   }
 
   function registerTrick(trick) {
+    const trickWithId = { ...trick, id: Date.now() };
     totalScore += trick.points;
-    tricks.unshift({ ...trick, id: Date.now() });
+    tricks.unshift(trickWithId);
+
+    // Send til Firebase
+    sendTrick(trickWithId);
 
     // Update score
     document.getElementById('totalScore').textContent = totalScore;
