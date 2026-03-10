@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpinLog – Dommertårn</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060a0f;
+    --surface: #0d1520;
+    --border: #1a2a3a;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --text: #e8f4f8;
+    --muted: #3a5a6a;
+    --green: #00ff88;
+    --yellow: #ffd700;
+    --red: #ff3b5c;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 100% 50% at 50% 100%, rgba(0,180,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(6,10,15,0.95);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 4px;
+  }
+  .logo .spin { color: var(--accent); text-shadow: 0 0 20px rgba(0,212,255,0.4); }
+  .logo .log  { color: var(--accent2); }
+  .logo .mode {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 24px; }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  .live-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+  }
+  .live-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 12px rgba(0,255,136,0.6);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .session-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .session-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* MAIN */
+  .main-panel {
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .degree-display { display: flex; align-items: flex-end; gap: 16px; }
+
+  .degree-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 140px;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 60px rgba(0,212,255,0.3);
+    transition: color 0.1s;
+    letter-spacing: -2px;
+  }
+  .degree-big.flash { color: var(--green); text-shadow: 0 0 80px rgba(0,255,136,0.6); }
+  .degree-big.reverse { color: var(--accent2); }
+
+  .degree-meta { padding-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .degree-unit { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--muted); letter-spacing: 3px; }
+
+  .direction-badge {
+    font-size: 10px; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase; padding: 4px 10px;
+    border: 1px solid var(--border); border-radius: 4px; transition: all 0.3s;
+  }
+  .direction-badge.fwd { border-color: var(--accent); color: var(--accent); }
+  .direction-badge.rev { border-color: var(--accent2); color: var(--accent2); }
+
+  .last-trick-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .last-trick-panel::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--accent); transition: background 0.3s;
+  }
+  .last-trick-panel.reverse::before { background: var(--accent2); }
+
+  .last-trick-label { font-size: 10px; color: var(--muted); letter-spacing: 3px; margin-bottom: 8px; }
+  .last-trick-name { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 2px; line-height: 1; }
+  .last-trick-pts { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--yellow); text-align: right; }
+  .last-trick-pts-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-align: right; margin-top: 4px; }
+
+  /* SIDE */
+  .side-panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+
+  .score-section {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .score-label { font-size: 9px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+  .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: var(--yellow); line-height: 1; }
+
+  .score-sub { display: flex; gap: 16px; margin-top: 8px; }
+  .score-sub-item .val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .score-sub-item .lbl { font-size: 8px; color: var(--muted); letter-spacing: 2px; }
+
+  .trick-history { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .trick-history::-webkit-scrollbar { width: 2px; }
+  .trick-history::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .history-header {
+    font-size: 9px; color: var(--muted); letter-spacing: 3px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    margin-bottom: 4px; display: flex; justify-content: space-between;
+  }
+
+  .trick-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(0,212,255,0.03);
+    border: 1px solid rgba(0,212,255,0.08);
+    border-radius: 8px;
+    animation: slideIn 0.3s ease;
+    position: relative; overflow: hidden;
+  }
+  .trick-row::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent);
+  }
+  .trick-row.reverse::before { background: var(--accent2); }
+  .trick-row.high::before { background: var(--yellow); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .trick-row-num { font-size: 9px; color: var(--muted); width: 20px; }
+  .trick-row-name { font-family: 'Bebas Neue', sans-serif; font-size: 20px; flex: 1; padding-left: 8px; }
+  .trick-row-pts { font-size: 11px; color: var(--yellow); }
+
+  .empty-history {
+    color: var(--muted); font-size: 11px; letter-spacing: 1px;
+    text-align: center; padding: 40px 0;
+  }
+
+  /* FLASH */
+  .trick-flash {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 100; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .trick-flash.show { opacity: 1; }
+
+  .flash-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 120px; color: var(--green);
+    text-shadow: 0 0 80px rgba(0,255,136,0.7);
+    letter-spacing: 6px; line-height: 1;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .flash-pts { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--yellow); letter-spacing: 4px; margin-top: 8px; }
+
+  @keyframes popIn {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  .no-connection {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,59,92,0.1); border: 1px solid var(--red);
+    border-radius: 8px; padding: 10px 24px;
+    font-size: 11px; color: var(--red); letter-spacing: 2px; display: none;
+  }
+  .no-connection.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="trick-flash" id="trickFlash">
+  <div class="flash-name" id="flashName">360°</div>
+  <div class="flash-pts" id="flashPts">+500 PTS</div>
+</div>
+
+<div class="no-connection" id="noConn">INGEN TILKOBLING – VENTER PÅ SENSOR...</div>
+
+<div class="layout">
+  <header>
+    <div class="logo">
+      <span class="spin">SPIN</span><span class="log">LOG</span>
+      <span class="mode">DOMMERTÅRN</span>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator">
+        <div class="live-dot" id="liveDot"></div>
+        <span id="liveText">KOBLER TIL...</span>
+      </div>
+      <button class="session-btn" onclick="resetSession()">NY SESJON</button>
+    </div>
+  </header>
+
+  <div class="main-panel">
+    <div class="degree-display">
+      <div class="degree-big" id="degreeDisplay">0</div>
+      <div class="degree-meta">
+        <div class="degree-unit">GRADER</div>
+        <div class="direction-badge" id="dirBadge">STILLE</div>
+      </div>
+    </div>
+    <div class="last-trick-panel" id="lastTrickPanel">
+      <div>
+        <div class="last-trick-label">SISTE TRIKS</div>
+        <div class="last-trick-name" id="lastTrickName">–</div>
+      </div>
+      <div>
+        <div class="last-trick-pts" id="lastTrickPts">–</div>
+        <div class="last-trick-pts-label">POENG</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-panel">
+    <div class="score-section">
+      <div class="score-label">TOTALT</div>
+      <div class="score-value" id="totalScore">0</div>
+      <div class="score-sub">
+        <div class="score-sub-item">
+          <div class="val" id="trickCount">0</div>
+          <div class="lbl">TRIKS</div>
+        </div>
+        <div class="score-sub-item">
+          <div class="val" id="bestTrick">–</div>
+          <div class="lbl">BEST</div>
+        </div>
+      </div>
+    </div>
+    <div class="trick-history" id="trickHistory">
+      <div class="history-header"><span>TRIKS</span><span>PTS</span></div>
+      <div class="empty-history">Venter på triks...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    databaseURL: "https://spinlog-cc4cf-default-rtdb.europe-west1.firebasedatabase.app"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let tricks = [];
+  let totalScore = 0;
+  let connectionTimer = null;
+
+  // Live grader
+  onValue(ref(db, 'sensor/degrees'), (snap) => {
+    const deg = snap.val();
+    if (deg === null) return;
+    const absDeg = Math.abs(deg);
+    document.getElementById('degreeDisplay').textContent = Math.round(absDeg);
+
+    const badge = document.getElementById('dirBadge');
+    const display = document.getElementById('degreeDisplay');
+    if (absDeg < 10) {
+      badge.textContent = 'STILLE'; badge.className = 'direction-badge';
+      display.className = 'degree-big';
+    } else if (deg > 0) {
+      badge.textContent = 'NORMAL'; badge.className = 'direction-badge fwd';
+      display.className = 'degree-big';
+    } else {
+      badge.textContent = 'REVERSE'; badge.className = 'direction-badge rev';
+      display.className = 'degree-big reverse';
+    }
+  });
+
+  // Nytt triks
+  let lastTrickId = null;
+  onValue(ref(db, 'sensor/lastTrick'), (snap) => {
+    const trick = snap.val();
+    if (!trick || !trick.name || trick.id === lastTrickId) return;
+    lastTrickId = trick.id;
+
+    tricks.unshift(trick);
+    totalScore += trick.points;
+    updateScore();
+    updateLastTrick(trick);
+    renderHistory();
+    showFlash(trick);
+  });
+
+  // Heartbeat
+  onValue(ref(db, 'sensor/heartbeat'), (snap) => {
+    if (!snap.val()) return;
+    setConnected(true);
+    clearTimeout(connectionTimer);
+    connectionTimer = setTimeout(() => setConnected(false), 5000);
+  });
+
+  function setConnected(on) {
+    document.getElementById('liveDot').className = 'live-dot' + (on ? ' connected' : '');
+    document.getElementById('liveText').textContent = on ? 'LIVE' : 'INGEN SENSOR';
+    document.getElementById('noConn').className = 'no-connection' + (on ? '' : ' show');
+  }
+
+  function updateScore() {
+    document.getElementById('totalScore').textContent = totalScore;
+    document.getElementById('trickCount').textContent = tricks.length;
+    const best = tricks.reduce((m, t) => t.points > m ? t.points : m, 0);
+    document.getElementById('bestTrick').textContent = best || '–';
+  }
+
+  function updateLastTrick(trick) {
+    document.getElementById('lastTrickName').textContent = trick.name;
+    document.getElementById('lastTrickPts').textContent = trick.points;
+    const isRev = trick.name.startsWith('Rev');
+    document.getElementById('lastTrickPanel').className = 'last-trick-panel' + (isRev ? ' reverse' : '');
+    const d = document.getElementById('degreeDisplay');
+    d.classList.add('flash');
+    setTimeout(() => d.classList.remove('flash'), 700);
+  }
+
+  function showFlash(trick) {
+    document.getElementById('flashName').textContent = trick.name;
+    document.getElementById('flashPts').textContent = '+' + trick.points + ' PTS';
+    const f = document.getElementById('trickFlash');
+    f.classList.add('show');
+    setTimeout(() => f.classList.remove('show'), 1200);
+  }
+
+  function renderHistory() {
+    const c = document.getElementById('trickHistory');
+    if (!tricks.length) {
+      c.innerHTML = '<div class="history-header"><span>TRIKS</span><span>PTS</span></div><div class="empty-history">Venter på triks...</div>';
+      return;
+    }
+    c.innerHTML = '<div class="history-header"><span>TRIKS</span><span>PTS</span></div>' +
+      tricks.map((t, i) => `
+        <div class="trick-row ${t.name.startsWith('Rev') ? 'reverse' : ''} ${t.points >= 800 ? 'high' : ''}">
+          <div class="trick-row-num">${tricks.length - i}</div>
+          <div class="trick-row-name">${t.name}</div>
+          <div class="trick-row-pts">+${t.points}</div>
+        </div>`).join('');
+  }
+
+  window.resetSession = function() {
+    if (!confirm('Nullstill hele sesjonen?')) return;
+    tricks = []; totalScore = 0;
+    updateScore(); renderHistory();
+    document.getElementById('lastTrickName').textContent = '–';
+    document.getElementById('lastTrickPts').textContent = '–';
+    document.getElementById('degreeDisplay').textContent = '0';
+    set(ref(db, 'sensor/lastTrick'), null);
+    set(ref(db, 'sensor/degrees'), 0);
+  };
+</script>
+</body>
+</html>
