@@ -751,9 +751,6 @@
     document.getElementById('degreeValue').textContent = Math.round(Math.abs(accumulatedDeg));
     sendDegrees(accumulatedDeg);
 
-    // Check tricks
-    checkTrick();
-
     // Stopp-timer: registrer trikset etter at rotasjonen har stoppet
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
@@ -769,7 +766,6 @@
 
   function awardBestTrick() {
     const deg = accumulatedDeg;
-    // Finn det høyeste trikset som ble krysset
     for (let i = TRICKS.length - 1; i >= 0; i--) {
       const t = TRICKS[i];
       const threshold = t.minDeg;
@@ -779,10 +775,6 @@
         return;
       }
     }
-  }
-
-  function checkTrick() {
-    // Ikke lenger brukt til å registrere – bare oppdater awardedThresholds for fremtidig bruk
   }
 
   function registerTrick(trick) {
