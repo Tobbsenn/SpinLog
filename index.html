@@ -679,6 +679,8 @@
     { name: 'Rev 360°', minDeg: -330, points: 500 },
     { name: 'Rev 540°', minDeg: -500, points: 800 },
     { name: 'Rev 720°', minDeg: -680, points: 1200 },
+    { name: 'Side S°', minDeg: 85, points: 50 },
+    { name: 'Rev Side S°', minDeg: -85, points: 50 },
   ];
 
   // === STATE ===
@@ -762,7 +764,7 @@
         accumulatedDeg = 0;
         baseAlpha = lastAlpha;
       }
-    }, 600);
+    }, 1200);
   }
 
   function awardBestTrick() {
