@@ -769,12 +769,17 @@
   function checkTrick() {
     const deg = accumulatedDeg;
 
+    // Finn det høyeste trikset som er krysset men ikke tildelt ennå
     for (let i = TRICKS.length - 1; i >= 0; i--) {
       const t = TRICKS[i];
       const threshold = t.minDeg;
       const crossed = threshold > 0 ? deg >= threshold : deg <= threshold;
+
       if (crossed && !awardedThresholds.has(threshold)) {
-        awardedThresholds.add(threshold);
+        // Marker alle lavere triks som "brukt" så de ikke registreres etterpå
+        for (let j = 0; j <= i; j++) {
+          awardedThresholds.add(TRICKS[j].minDeg);
+        }
         registerTrick(t);
         break;
       }
