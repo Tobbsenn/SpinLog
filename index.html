@@ -671,16 +671,16 @@
   // === TRICK DEFINITIONS ===
   // Positive = normal, Negative = reverse
   const TRICKS = [
-    { name: 'Side S°',    minDeg:   85, points:   50 },
-    { name: '180°',       minDeg:  155, points:  170 },
-    { name: '360°',       minDeg:  330, points:  500 },
-    { name: '540°',       minDeg:  500, points:  800 },
-    { name: '720°',       minDeg:  680, points: 1200 },
-    { name: 'Rev Side S°',minDeg:  -85, points:   50 },
-    { name: 'Rev 180°',   minDeg: -155, points:  170 },
-    { name: 'Rev 360°',   minDeg: -330, points:  500 },
-    { name: 'Rev 540°',   minDeg: -500, points:  800 },
-    { name: 'Rev 720°',   minDeg: -680, points: 1200 },
+    { name: 'Side S°',     minDeg:  60,  maxDeg:  100, points:   40 },
+    { name: '180°',        minDeg:  151, maxDeg:  210, points:  60 },
+    { name: '360°',        minDeg:  310, maxDeg:  410, points:  90 },
+    { name: '540°',        minDeg:  470, maxDeg:  570, points:  110 },
+    { name: '720°',        minDeg:  630, maxDeg:  750, points: 130 },
+    { name: 'Rev Side S°', minDeg: -60,  maxDeg: -100, points:   40 },
+    { name: 'Rev 180°',    minDeg: -151, maxDeg: -210, points:  60 },
+    { name: 'Rev 360°',    minDeg: -310, maxDeg: -410, points:  90 },
+    { name: 'Rev 540°',    minDeg: -470, maxDeg: -570, points:  110 },
+    { name: 'Rev 720°',    minDeg: -630, maxDeg: -750, points: 130 },
   ];
 
   // === STATE ===
@@ -754,7 +754,6 @@
     // Check tricks
     checkTrick();
 
-    // Stopp-timer: vent til rotasjonen stopper, DERETTER gi trikset
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
       if (isTracking) {
@@ -769,14 +768,18 @@
   }
 
   function checkTrick(deg) {
-    if (Math.abs(deg) < 30) return; // for lite bevegelse, ignorer
-    const direction = deg >= 0 ? 'positive' : 'negative';
-    const relevantTricks = TRICKS.filter(t => direction === 'positive' ? t.minDeg > 0 : t.minDeg < 0);
-    relevantTricks.sort((a, b) => Math.abs(b.minDeg) - Math.abs(a.minDeg));
+    if (Math.abs(deg) < 30) return;
+    const absDeg = Math.abs(deg);
 
-    for (const t of relevantTricks) {
-      const crossed = t.minDeg > 0 ? deg >= t.minDeg : deg <= t.minDeg;
-      if (crossed) {
+    for (const t of TRICKS) {
+      const min = Math.min(Math.abs(t.minDeg), Math.abs(t.maxDeg));
+      const max = Math.max(Math.abs(t.minDeg), Math.abs(t.maxDeg));
+      const isReverse = t.minDeg < 0;
+
+      // Sjekk retning og om graden er innenfor vinduet
+      if (isReverse && deg > 0) continue;
+      if (!isReverse && deg < 0) continue;
+      if (absDeg >= min && absDeg <= max) {
         registerTrick(t);
         break;
       }
