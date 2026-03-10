@@ -755,17 +755,17 @@
     clearTimeout(stillTimer);
     stillTimer = setTimeout(() => {
       if (isTracking) {
-        awardBestTrick();
-        awardedThresholds.clear();
-        currentDirection = 0;
+        const degSnapshot = accumulatedDeg; // ta kopi FØR nullstilling
         accumulatedDeg = 0;
         baseAlpha = lastAlpha;
+        awardedThresholds.clear();
+        currentDirection = 0;
+        awardBestTrick(degSnapshot);
       }
     }, 1200);
   }
 
-  function awardBestTrick() {
-    const deg = accumulatedDeg;
+  function awardBestTrick(deg) {
     for (let i = TRICKS.length - 1; i >= 0; i--) {
       const t = TRICKS[i];
       const threshold = t.minDeg;
