@@ -874,6 +874,11 @@
     renderTricks();
   }
 
+  // Gjør funksjoner tilgjengelige for HTML-knapper
+  window.checkCode = checkCode;
+  window.toggleTracking = toggleTracking;
+  window.resetAll = resetAll;
+
   // Try auto-start without permission request on Android
   // (access code screen still shows first)
   window.addEventListener('load', () => {
